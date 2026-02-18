@@ -14,7 +14,9 @@ const DISCORD_CONFIG = {
 // ================= URLS =================
 const urls = [
 'https://it.genialcredito.com/ita-raccomandazione-carta-1/',
-'https://it.meucartaoideal.com/it-raccomandazione-di-carta-3/'
+'https://it.genialcredito.com/raccomandazioni-sulle-carte-di-credito-1/',
+'https://it.meucartaoideal.com/it-raccomandazione-di-carta-3/',
+'https://it.meucartaoideal.com/card-it-recommendation-5/'
 ];
 
 // ================= TARGETS =================
