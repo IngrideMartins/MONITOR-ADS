@@ -13,11 +13,12 @@ const DISCORD_CONFIG = {
 
 // ================= URLS =================
 const urls = [
- ////////// urls
+'https://it.genialcredito.com/ita-raccomandazione-carta-1/',
+'https://it.meucartaoideal.com/it-raccomandazione-di-carta-3/'
 ];
 
 // ================= TARGETS =================
-const TARGETS_MAIN = ['mob_top', 'desk_top', 'rdm_top', 'brcreativepulse23_top', 'meucartaoideal_desk_top_rec'];
+const TARGETS_MAIN = ['mob_top', 'desk_top'];
 
 // ================= CONFIGS =================
 const CONCURRENCY = 5;
@@ -578,7 +579,7 @@ function registrarErro(url) {
 }
 
 async function enviarDiscord() {
-  let corpo = '🚨 **FALHAS DE ANÚNCIO - JN CC BR**\n\n';
+  let corpo = '🚨 **FALHAS DE ANÚNCIO - ND IT TKK**\n\n';
   for (const d in errosPorDominio) {
     corpo += `**${d}**\n`;
     errosPorDominio[d].forEach((u) => (corpo += `<${u}>\n`));
