@@ -24,6 +24,6 @@ jobs:
 
       - name: Executar verificador
         env:
-          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL_USEMP }}
-          DISCORD_THREAD_ID: ${{ secrets.DISCORD_THREAD_ID_USEMP }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL_JNUSEMP }}
+          DISCORD_THREAD_ID: ${{ secrets.DISCORD_THREAD_ID_JNUSEMP }}
         run: node JNUSEMP.js
