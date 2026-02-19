@@ -13,7 +13,8 @@ const DISCORD_CONFIG = {
 
 // ================= URLS =================
 const urls = [
- ////////// urls
+ 'http://finance.zienic.com/recommends-options-limit-p1',
+ 'http://emp.thecredito.com.br/featured-credit-cards'
 ];
 
 // ================= TARGETS =================
@@ -578,7 +579,7 @@ function registrarErro(url) {
 }
 
 async function enviarDiscord() {
-  let corpo = '🚨 **FALHAS DE ANÚNCIO - JN CC BR**\n\n';
+  let corpo = '🚨 **FALHAS DE ANÚNCIO - JN US EMP**\n\n';
   for (const d in errosPorDominio) {
     corpo += `**${d}**\n`;
     errosPorDominio[d].forEach((u) => (corpo += `<${u}>\n`));
