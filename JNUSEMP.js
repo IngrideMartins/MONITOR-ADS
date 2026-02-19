@@ -18,7 +18,7 @@ const urls = [
 ];
 
 // ================= TARGETS =================
-const TARGETS_MAIN = ['mob_top', 'desk_top', 'rdm_top', 'brcreativepulse23_top', 'meucartaoideal_desk_top_rec'];
+const TARGETS_MAIN = ['mob_top', 'desk_top'];
 
 // ================= CONFIGS =================
 const CONCURRENCY = 5;
