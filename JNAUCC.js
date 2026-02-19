@@ -13,7 +13,7 @@ const DISCORD_CONFIG = {
 
 // ================= URLS =================
 const urls = [
- 'http://au.genialcredito.com/recommendation-card-2-r','
+ 'http://au.genialcredito.com/recommendation-card-2-r',
  'http://au.zienic.com/discover-the-credit-card'
 
 ];
