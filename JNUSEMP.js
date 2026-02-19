@@ -13,8 +13,8 @@ const DISCORD_CONFIG = {
 
 // ================= URLS =================
 const urls = [
- 'http://finance.zienic.com/recommends-options-limit-p1',
- 'http://emp.thecredito.com.br/featured-credit-cards'
+ 'https://finance.zienic.com/recommends-options-limit-p1',
+ 'https://emp.thecredito.com.br/featured-credit-cards'
 ];
 
 // ================= TARGETS =================
