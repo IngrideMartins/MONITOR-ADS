@@ -1,5 +1,3 @@
-const fs = require('fs');
-const path = require('path');
 const puppeteer = require('puppeteer-extra');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 
@@ -7,9 +5,10 @@ puppeteer.use(StealthPlugin());
 
 // ================= DISCORD =================
 const DISCORD_CONFIG = {
-  webhookUrl: process.env.DISCORD_WEBHOOK_URL_JNAUCC,
-  threadId: process.env.DISCORD_THREAD_ID_JNAUCC
+  webhookUrl: process.env.DISCORD_WEBHOOK_URL_MGBREMP,
+  threadId: process.env.DISCORD_THREAD_ID_MGBREMP
 };
+
 // ================= URLS =================
 const urls = [
   'https://emprestimo.altarendabr.com/pt-br-recomendacao-de-emprestimos-4',
@@ -17,13 +16,10 @@ const urls = [
   'https://br.creativepulse23.com/convite-para-o-cartao-casas-bahia/'
 ];
 
-// ================= TARGETS (NOVO: grupos) =================
-// top = precisa achar pelo menos UM (mob_top OU desk_top)
-// rewarded = precisa achar rewarded
-// interstitial = precisa achar interstitial
+// ================= TARGETS (grupos) =================
 const TARGET_GROUPS = {
   top: ['mob_top', 'desk_top'],
-  rewarded: ['rewarded','offerwall'],
+  rewarded: ['rewarded'],
   interstitial: ['interstitial']
 };
 
@@ -33,35 +29,15 @@ const NAV_TIMEOUT_MS = 60000;
 const GPT_READY_TIMEOUT_MS = 60000;
 const FIND_TIMEOUT_MS = 45000;
 const HOLD_TOP_MS = 9000;
-const EVIDENCE_DIR = path.join(process.cwd(), 'evidences');
 
 // ================= STATE =================
 let errosPorDominio = {};
-if (!fs.existsSync(EVIDENCE_DIR)) fs.mkdirSync(EVIDENCE_DIR, { recursive: true });
 
 // ================= UTILS =================
 function chunkArray(arr, size) {
   const out = [];
   for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
   return out;
-}
-
-function slugifyUrl(u) {
-  try {
-    const url = new URL(u);
-    const base = (url.hostname + url.pathname).replace(/\/+/g, '_');
-    return base.replace(/[^a-zA-Z0-9_\-]/g, '_').slice(0, 180);
-  } catch {
-    return String(u).replace(/[^a-zA-Z0-9_\-]/g, '_').slice(0, 180);
-  }
-}
-
-function nowStamp() {
-  const d = new Date();
-  const pad = (n) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}_${pad(d.getHours())}-${pad(
-    d.getMinutes()
-  )}-${pad(d.getSeconds())}`;
 }
 
 async function runWithConcurrency(items, limit, worker) {
@@ -112,7 +88,7 @@ async function ativarModoTurbo(page) {
   });
 }
 
-// ================= LOG CAPTURE =================
+// ================= LOG CAPTURE (mantém só em memória pra debug do console) =================
 function attachDebugCollectors(page) {
   const state = {
     console: [],
@@ -205,7 +181,7 @@ async function iniciarFaxinaContinua(page) {
   });
 }
 
-// ================= MOUSE "JITTER" (força render de ads que dependem de interação) =================
+// ================= MOUSE "JITTER" =================
 async function iniciarMouseJitter(page, durationMs = 22000, intervalMs = 650) {
   let stopped = false;
 
@@ -325,7 +301,7 @@ async function esperarGptReady(page, timeout = GPT_READY_TIMEOUT_MS) {
   }
 }
 
-// ================= BUSCA (NOVO: precisa ter TODOS os grupos) =================
+// ================= BUSCA (precisa ter TODOS os grupos) =================
 async function buscarTodosOsTargets(page, targetGroups, timeout = FIND_TIMEOUT_MS) {
   return await page.evaluate(async (targetGroups, timeout) => {
     const start = Date.now();
@@ -429,42 +405,6 @@ async function buscarTodosOsTargets(page, targetGroups, timeout = FIND_TIMEOUT_M
   }, targetGroups, timeout);
 }
 
-// ================= EVIDÊNCIAS =================
-// (No seu script original você chamou capturarEvidencia(page, ...), mas não colou a função.
-// Vou incluir uma versão robusta aqui pra ficar "script completo" e não quebrar.)
-async function capturarEvidencia(page, urlLimpa, debugState, extra = {}) {
-  try {
-    const stamp = nowStamp();
-    const base = slugifyUrl(urlLimpa);
-    const dir = EVIDENCE_DIR;
-
-    const shotPath = path.join(dir, `${base}__${stamp}.png`);
-    const htmlPath = path.join(dir, `${base}__${stamp}.html`);
-    const jsonPath = path.join(dir, `${base}__${stamp}.json`);
-
-    try {
-      await page.screenshot({ path: shotPath, fullPage: true });
-    } catch {}
-
-    try {
-      const html = await page.content();
-      fs.writeFileSync(htmlPath, html, 'utf-8');
-    } catch {}
-
-    try {
-      const payload = {
-        url: urlLimpa,
-        stamp,
-        extra,
-        debug: debugState
-      };
-      fs.writeFileSync(jsonPath, JSON.stringify(payload, null, 2), 'utf-8');
-    } catch {}
-
-    console.log(`    🧾 Evidências salvas em: ${dir}`);
-  } catch {}
-}
-
 // ================= PROCESSA =================
 async function processarUrl(url, browser) {
   let page;
@@ -473,7 +413,7 @@ async function processarUrl(url, browser) {
 
   try {
     page = await browser.newPage();
-    const debugState = attachDebugCollectors(page);
+    attachDebugCollectors(page); // mantém listeners, mas não salva nada em disco
 
     await ativarModoTurbo(page);
 
@@ -520,7 +460,6 @@ async function processarUrl(url, browser) {
       ).catch(() => {});
       await esperarLayoutEstavel(page, 8000, 1000);
 
-      // dá mais tempo (às vezes aparece perto de ~20s)
       resultado = await buscarTodosOsTargets(page, TARGET_GROUPS, FIND_TIMEOUT_MS);
     }
 
@@ -566,21 +505,9 @@ async function processarUrl(url, browser) {
       console.log('    ⚠️ Nenhum slot GPT listado (pode ser AdSense/AutoAds ou inicialização tardia).');
     }
 
-    await capturarEvidencia(page, limpa, debugState, { resultado, gptReady });
     registrarErro(limpa, faltando);
   } catch (e) {
     console.log(`\n❌ ERRO ${limpa} - ${e.message}`);
-    try {
-      if (page) {
-        const debugState = {
-          console: [],
-          pageErrors: [String(e.message || e)],
-          requestFailed: [],
-          responsesBad: []
-        };
-        await capturarEvidencia(page, limpa, debugState, { exception: true, message: e.message });
-      }
-    } catch {}
     registrarErro(limpa, ['exception']);
   } finally {
     try {
@@ -627,41 +554,34 @@ function registrarErro(url, faltando = []) {
   try {
     const dom = new URL(url).hostname;
     if (!errosPorDominio[dom]) errosPorDominio[dom] = [];
-
-    // guarda também o que faltou (pra aparecer no Discord)
-    errosPorDominio[dom].push({
-      url,
-      faltando
-    });
+    errosPorDominio[dom].push({ url, faltando });
   } catch {}
 }
 
 async function enviarDiscord() {
   let corpo = '🚨 **FALHAS DE ANÚNCIO - MG BR EMP**\n\n';
 
-  // manter URLs ordenadas por domínio (como você pediu antes)
+  // URLs ordenadas por domínio
   const dominios = Object.keys(errosPorDominio).sort();
 
   for (const d of dominios) {
     corpo += `**${d}**\n`;
     errosPorDominio[d].forEach((item) => {
-      const u = typeof item === 'string' ? item : item.url;
-      const faltando = typeof item === 'string' ? [] : item.faltando || [];
-      const suffix = faltando.length ? ` _(faltando: ${faltando.join(', ')})_` : '';
-      corpo += `<${u}>${suffix}\n`;
+      const faltando = item.faltando?.length ? ` _(faltando: ${item.faltando.join(', ')})_` : '';
+      corpo += `<${item.url}>${faltando}\n`;
     });
     corpo += '\n';
   }
 
-if (!DISCORD_CONFIG.webhookUrl) {
-  console.log('⚠️ DISCORD_WEBHOOK_URL_MGBREMP não configurado. Logando falhas no console.');
-  console.log(corpo);
-  return;
-}
+  if (!DISCORD_CONFIG.webhookUrl) {
+    console.log('⚠️ DISCORD_WEBHOOK_URL_MGBREMP não configurado. Logando falhas no console.');
+    console.log(corpo);
+    return;
+  }
 
-const baseUrl = DISCORD_CONFIG.threadId
-  ? `${DISCORD_CONFIG.webhookUrl}?thread_id=${encodeURIComponent(DISCORD_CONFIG.threadId)}`
-  : DISCORD_CONFIG.webhookUrl;
+  const baseUrl = DISCORD_CONFIG.threadId
+    ? `${DISCORD_CONFIG.webhookUrl}?thread_id=${encodeURIComponent(DISCORD_CONFIG.threadId)}`
+    : DISCORD_CONFIG.webhookUrl;
 
   const partes = splitDiscordMessage(corpo, 1900);
 
