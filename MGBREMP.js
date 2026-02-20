@@ -655,7 +655,7 @@ function registrarErro(url, missingGroups = [], missingTargetsByGroup = {}) {
 }
 
 async function enviarDiscord() {
-  let corpo = '🚨 FALHAS DE ANÚNCIO - JN CC BR\n\n';
+  let corpo = '🚨 FALHAS DE ANÚNCIO - MG EMP BR\n\n';
 
   // ordena domínios e URLs (por domínio)
   const dominios = Object.keys(errosPorDominio).sort((a, b) => a.localeCompare(b));
