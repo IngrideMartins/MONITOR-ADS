@@ -17,8 +17,15 @@ const urls = [
   'https://emprestimo.sofinancas.com/p1-emprestimos-recomendados-r'
 ];
 
-// ================= TARGETS =================
-const TARGETS_MAIN = ['mob_top', 'desk_top','rewarded'];
+// ================= TARGETS (NOVO: grupos) =================
+// top = precisa achar pelo menos UM (mob_top OU desk_top)
+// rewarded = precisa achar rewarded
+// interstitial = precisa achar interstitial
+const TARGET_GROUPS = {
+  top: ['mob_top', 'desk_top'],
+  rewarded: ['rewarded'],
+  interstitial: ['interstitial']
+};
 
 // ================= CONFIGS =================
 const CONCURRENCY = 5;
@@ -318,9 +325,9 @@ async function esperarGptReady(page, timeout = GPT_READY_TIMEOUT_MS) {
   }
 }
 
-// ================= BUSCA TARGETS (MAIN ONLY) =================
-async function buscarTargetsNaPagina(page, targets, timeout = FIND_TIMEOUT_MS) {
-  return await page.evaluate(async (targets, timeout) => {
+// ================= BUSCA (NOVO: precisa ter TODOS os grupos) =================
+async function buscarTodosOsTargets(page, targetGroups, timeout = FIND_TIMEOUT_MS) {
+  return await page.evaluate(async (targetGroups, timeout) => {
     const start = Date.now();
 
     const isVisibleEnough = (el) => {
@@ -353,27 +360,33 @@ async function buscarTargetsNaPagina(page, targets, timeout = FIND_TIMEOUT_MS) {
       return false;
     };
 
-    const tryFind = () => {
-      if (window.googletag && googletag.pubads) {
-        try {
-          const slots = googletag.pubads().getSlots();
-          const gptMatch = slots.find((s) => {
-            const id = (s.getSlotElementId() || '').toLowerCase();
-            const path = (s.getAdUnitPath() || '').toLowerCase();
-            return targets.some((t) => id.includes(t) || path.includes(t));
-          });
+    const getSlotsSafe = () => {
+      try {
+        if (window.googletag && googletag.pubads) {
+          return googletag.pubads().getSlots().map((s) => ({
+            id: s.getSlotElementId(),
+            path: s.getAdUnitPath()
+          }));
+        }
+      } catch {}
+      return [];
+    };
 
-          if (gptMatch) {
-            return {
-              sucesso: true,
-              tipo: 'GPT',
-              detalhe: `${gptMatch.getSlotElementId()}`
-            };
-          }
-        } catch {}
+    const matchAnyInGroup = (slots, groupTargets) => {
+      const lowerTargets = groupTargets.map((t) => String(t).toLowerCase());
+
+      // 1) GPT slots
+      const slotHit = slots.find((s) => {
+        const id = (s.id || '').toLowerCase();
+        const path = (s.path || '').toLowerCase();
+        return lowerTargets.some((t) => id.includes(t) || path.includes(t));
+      });
+      if (slotHit) {
+        return { ok: true, tipo: 'GPT', detalhe: `${slotHit.id}` };
       }
 
-      const domMatch = targets.find((t) => {
+      // 2) DOM check
+      const domHit = lowerTargets.find((t) => {
         const el = document.querySelector(`[id*="${t}"]`);
         if (!el) return false;
 
@@ -382,60 +395,80 @@ async function buscarTargetsNaPagina(page, targets, timeout = FIND_TIMEOUT_MS) {
         return hasAdInsideTargetEl(el) || (el.tagName === 'IFRAME' && isVisibleEnough(el));
       });
 
-      if (domMatch) {
-        return {
-          sucesso: true,
-          tipo: 'DOM-CHECK',
-          detalhe: `Elemento: ${domMatch}`
-        };
+      if (domHit) {
+        return { ok: true, tipo: 'DOM-CHECK', detalhe: `Elemento: ${domHit}` };
       }
 
-      return null;
+      return { ok: false };
     };
 
     return new Promise((resolve) => {
       const timer = setInterval(() => {
-        const hit = tryFind();
-        if (hit) {
+        const slots = getSlotsSafe();
+        const gptStatus = window.googletag && window.googletag.apiReady ? 'Ativo' : 'Inativo';
+
+        const results = {};
+        for (const groupName of Object.keys(targetGroups)) {
+          results[groupName] = matchAnyInGroup(slots, targetGroups[groupName]);
+        }
+
+        const allOk = Object.values(results).every((r) => r.ok);
+
+        if (allOk) {
           clearInterval(timer);
-          resolve(hit);
+          resolve({ sucesso: true, tipo: 'ALL', gptStatus, results, debugSlots: slots });
           return;
         }
 
         if (Date.now() - start > timeout) {
           clearInterval(timer);
-
-          let debugSlots = [];
-          let gptStatus = window.googletag && window.googletag.apiReady ? 'Ativo' : 'Inativo';
-
-          try {
-            if (window.googletag && googletag.pubads) {
-              debugSlots = googletag
-                .pubads()
-                .getSlots()
-                .map((s) => ({
-                  id: s.getSlotElementId(),
-                  path: s.getAdUnitPath()
-                }));
-            }
-          } catch {}
-
-          resolve({
-            sucesso: false,
-            tipo: 'TIMEOUT',
-            gptStatus,
-            debugSlots
-          });
+          resolve({ sucesso: false, tipo: 'TIMEOUT', gptStatus, results, debugSlots: slots });
         }
       }, 500);
     });
-  }, targets, timeout);
+  }, targetGroups, timeout);
+}
+
+// ================= EVIDÊNCIAS =================
+// (No seu script original você chamou capturarEvidencia(page, ...), mas não colou a função.
+// Vou incluir uma versão robusta aqui pra ficar "script completo" e não quebrar.)
+async function capturarEvidencia(page, urlLimpa, debugState, extra = {}) {
+  try {
+    const stamp = nowStamp();
+    const base = slugifyUrl(urlLimpa);
+    const dir = EVIDENCE_DIR;
+
+    const shotPath = path.join(dir, `${base}__${stamp}.png`);
+    const htmlPath = path.join(dir, `${base}__${stamp}.html`);
+    const jsonPath = path.join(dir, `${base}__${stamp}.json`);
+
+    try {
+      await page.screenshot({ path: shotPath, fullPage: true });
+    } catch {}
+
+    try {
+      const html = await page.content();
+      fs.writeFileSync(htmlPath, html, 'utf-8');
+    } catch {}
+
+    try {
+      const payload = {
+        url: urlLimpa,
+        stamp,
+        extra,
+        debug: debugState
+      };
+      fs.writeFileSync(jsonPath, JSON.stringify(payload, null, 2), 'utf-8');
+    } catch {}
+
+    console.log(`    🧾 Evidências salvas em: ${dir}`);
+  } catch {}
 }
 
 // ================= PROCESSA =================
 async function processarUrl(url, browser) {
   let page;
-  let mouseJitter; // <-- controle do jitter
+  let mouseJitter;
   const limpa = url.split('?')[0];
 
   try {
@@ -457,42 +490,51 @@ async function processarUrl(url, browser) {
     // garante topo
     await page.evaluate(() => window.scrollTo(0, 0)).catch(() => {});
 
-    // INICIA o "mexer cursor" contínuo (força render do anúncio)
+    // jitter contínuo
     mouseJitter = await iniciarMouseJitter(page, 22000, 650);
 
     // move inicial
     await page.mouse.move(500, 220, { steps: 10 }).catch(() => {});
 
-    // segura no topo para páginas que montam mob_top com delay
+    // segura no topo
     await new Promise((r) => setTimeout(r, HOLD_TOP_MS));
 
     // layout settle + reflow/resize
     await esperarLayoutEstavel(page, 15000, 1200);
     await forcarReflowResize(page);
 
-    // espera GPT ready (sem travar se não ficar)
+    // espera GPT ready (sem travar)
     const gptReady = await esperarGptReady(page, GPT_READY_TIMEOUT_MS);
 
-    // tenta achar MAIN ainda no topo (antes de descer)
-    let resultado = await buscarTargetsNaPagina(page, TARGETS_MAIN, 25000);
+    // tenta achar TODOS ainda no topo
+    let resultado = await buscarTodosOsTargets(page, TARGET_GROUPS, 25000);
 
-    // se não achou, scroll e procura de novo
+    // se não achou tudo, scroll e procura de novo
     if (!resultado.sucesso) {
       await scrollHumano(page);
       await esperarLayoutEstavel(page, 8000, 1000);
-      await scrollAteSelector(page, '#mob_top, #desk_top, [id*="mob_top"], [id*="desk_top"]', 8).catch(
-        () => {}
-      );
+      await scrollAteSelector(
+        page,
+        '#mob_top, #desk_top, #rewarded, #interstitial, [id*="mob_top"], [id*="desk_top"], [id*="rewarded"], [id*="interstitial"]',
+        8
+      ).catch(() => {});
       await esperarLayoutEstavel(page, 8000, 1000);
 
-      // dá mais tempo porque às vezes o banner aparece perto de ~20s
-      resultado = await buscarTargetsNaPagina(page, TARGETS_MAIN, FIND_TIMEOUT_MS);
+      // dá mais tempo (às vezes aparece perto de ~20s)
+      resultado = await buscarTodosOsTargets(page, TARGET_GROUPS, FIND_TIMEOUT_MS);
     }
 
     console.log(`\n📊 ${limpa}`);
 
     if (resultado.sucesso) {
-      console.log(` 🟢 STATUS: OK (${resultado.tipo} -> ${resultado.detalhe})`);
+      const okMsgs = Object.entries(resultado.results || {})
+        .filter(([, r]) => r.ok)
+        .map(([k, r]) => `${k}: ${r.tipo} -> ${r.detalhe}`)
+        .join(' | ');
+
+      console.log(` 🟢 STATUS: OK (mob/desk + rewarded + interstitial)`);
+      if (okMsgs) console.log(`    ✅ ${okMsgs}`);
+
       try {
         mouseJitter?.stop();
       } catch {}
@@ -502,8 +544,19 @@ async function processarUrl(url, browser) {
     console.log(' 🔴 STATUS: FALHA');
     console.log(`    GPT Status: ${resultado.gptStatus || (gptReady.ok ? 'Ativo' : 'Inativo')}`);
 
+    const faltando = Object.entries(resultado.results || {})
+      .filter(([, r]) => !r.ok)
+      .map(([k]) => k);
+
+    if (faltando.length) console.log(`    ❌ Faltando: ${faltando.join(', ')}`);
+
+    for (const [k, r] of Object.entries(resultado.results || {})) {
+      if (r.ok) console.log(`    ✅ ${k}: ${r.tipo} -> ${r.detalhe}`);
+      else console.log(`    ❌ ${k}: não encontrado`);
+    }
+
     if (resultado.debugSlots && resultado.debugSlots.length > 0) {
-      console.log('    ⚠️ Slots carregados (sem match em TARGETS_MAIN):');
+      console.log('    ⚠️ Slots carregados (debug):');
       resultado.debugSlots.slice(0, 25).forEach((s) => {
         console.log(`       - ID: ${s.id}`);
         console.log(`         Path: ${s.path}`);
@@ -514,7 +567,7 @@ async function processarUrl(url, browser) {
     }
 
     await capturarEvidencia(page, limpa, debugState, { resultado, gptReady });
-    registrarErro(limpa);
+    registrarErro(limpa, faltando);
   } catch (e) {
     console.log(`\n❌ ERRO ${limpa} - ${e.message}`);
     try {
@@ -525,10 +578,10 @@ async function processarUrl(url, browser) {
           requestFailed: [],
           responsesBad: []
         };
-        await capturarEvidencia(page, limpa, debugState, { exception: true });
+        await capturarEvidencia(page, limpa, debugState, { exception: true, message: e.message });
       }
     } catch {}
-    registrarErro(limpa);
+    registrarErro(limpa, ['exception']);
   } finally {
     try {
       mouseJitter?.stop();
@@ -539,7 +592,7 @@ async function processarUrl(url, browser) {
 
 // ================= MAIN =================
 (async () => {
-  console.log('\n🚀 MONITOR V13 (MAIN-ONLY, robusto) [DISCORD]\n');
+  console.log('\n🚀 MONITOR V13 (MAIN-ONLY, robusto) [DISCORD] (CHECK: top + rewarded + interstitial)\n');
 
   const browser = await puppeteer.launch({
     headless: 'new',
@@ -570,19 +623,33 @@ async function processarUrl(url, browser) {
 })();
 
 // ================= ERROS / DISCORD =================
-function registrarErro(url) {
+function registrarErro(url, faltando = []) {
   try {
     const dom = new URL(url).hostname;
     if (!errosPorDominio[dom]) errosPorDominio[dom] = [];
-    errosPorDominio[dom].push(url);
+
+    // guarda também o que faltou (pra aparecer no Discord)
+    errosPorDominio[dom].push({
+      url,
+      faltando
+    });
   } catch {}
 }
 
 async function enviarDiscord() {
   let corpo = '🚨 **FALHAS DE ANÚNCIO - MG BR EMP**\n\n';
-  for (const d in errosPorDominio) {
+
+  // manter URLs ordenadas por domínio (como você pediu antes)
+  const dominios = Object.keys(errosPorDominio).sort();
+
+  for (const d of dominios) {
     corpo += `**${d}**\n`;
-    errosPorDominio[d].forEach((u) => (corpo += `<${u}>\n`));
+    errosPorDominio[d].forEach((item) => {
+      const u = typeof item === 'string' ? item : item.url;
+      const faltando = typeof item === 'string' ? [] : item.faltando || [];
+      const suffix = faltando.length ? ` _(faltando: ${faltando.join(', ')})_` : '';
+      corpo += `<${u}>${suffix}\n`;
+    });
     corpo += '\n';
   }
 
