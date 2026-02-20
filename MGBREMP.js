@@ -10,7 +10,6 @@ const DISCORD_CONFIG = {
   webhookUrl: process.env.DISCORD_WEBHOOK_URL_MGBREMP,
   threadId: process.env.DISCORD_THREAD_ID_MGBREMP
 };
-
 // ================= URLS =================
 const urls = [
   'https://emprestimo.altarendabr.com/pt-br-recomendacao-de-emprestimos-4',
@@ -654,15 +653,15 @@ async function enviarDiscord() {
     corpo += '\n';
   }
 
-  if (!DISCORD_CONFIG.webhookUrl) {
-    console.log('⚠️ DISCORD_WEBHOOK_URL_MGBREMP não configurado. Logando falhas no console.');
-    console.log(corpo);
-    return;
-  }
+if (!DISCORD_CONFIG.webhookUrl) {
+  console.log('⚠️ DISCORD_WEBHOOK_URL_MGBREMP não configurado. Logando falhas no console.');
+  console.log(corpo);
+  return;
+}
 
-  const baseUrl = DISCORD_CONFIG.threadId
-    ? `${DISCORD_CONFIG.webhookUrl}?thread_id=${encodeURIComponent(DISCORD_CONFIG.threadId)}`
-    : DISCORD_CONFIG.webhookUrl;
+const baseUrl = DISCORD_CONFIG.threadId
+  ? `${DISCORD_CONFIG.webhookUrl}?thread_id=${encodeURIComponent(DISCORD_CONFIG.threadId)}`
+  : DISCORD_CONFIG.webhookUrl;
 
   const partes = splitDiscordMessage(corpo, 1900);
 
