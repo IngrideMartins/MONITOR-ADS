@@ -14,7 +14,8 @@ const DISCORD_CONFIG = {
 // ================= URLS =================
 const urls = [
 'https://emprestimo.altarendabr.com/pt-br-recomendacao-de-emprestimos-4',
-'https://emprestimo.sofinancas.com/p1-emprestimos-recomendados-r'
+'https://emprestimo.sofinancas.com/p1-emprestimos-recomendados-r',
+'https://br.creativepulse23.com/convite-para-o-cartao-casas-bahia'
 ];
 
 // ================= TARGET GROUPS (REGRA: OU em TODOS os grupos) =================
