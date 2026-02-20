@@ -1,3 +1,5 @@
+const fs = require('fs');
+const path = require('path');
 const puppeteer = require('puppeteer-extra');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 
@@ -5,21 +7,20 @@ puppeteer.use(StealthPlugin());
 
 // ================= DISCORD =================
 const DISCORD_CONFIG = {
-  webhookUrl: process.env.DISCORD_WEBHOOK_URL_MGBREMP,
-  threadId: process.env.DISCORD_THREAD_ID_MGBREMP
+  webhookUrl: process.env.DISCORD_WEBHOOK_URLMG,
+  threadId: process.env.DISCORD_THREAD_IDMG
 };
 
 // ================= URLS =================
 const urls = [
-  'https://emprestimo.altarendabr.com/pt-br-recomendacao-de-emprestimos-4',
-  'https://emprestimo.sofinancas.com/p1-emprestimos-recomendados-r',
-  'https://br.creativepulse23.com/convite-para-o-cartao-casas-bahia/'
+'https://emprestimo.altarendabr.com/pt-br-recomendacao-de-emprestimos-4',
+'https://emprestimo.sofinancas.com/p1-emprestimos-recomendados-r'
 ];
 
-// ================= TARGETS (grupos) =================
+// ================= TARGET GROUPS (REGRA: OU em TODOS os grupos) =================
 const TARGET_GROUPS = {
   top: ['mob_top', 'desk_top'],
-  rewarded: ['rewarded'],
+  rewarded: ['rewarded','offerwall'],
   interstitial: ['interstitial']
 };
 
@@ -29,15 +30,36 @@ const NAV_TIMEOUT_MS = 60000;
 const GPT_READY_TIMEOUT_MS = 60000;
 const FIND_TIMEOUT_MS = 45000;
 const HOLD_TOP_MS = 9000;
+const EVIDENCE_DIR = path.join(process.cwd(), 'evidences');
 
 // ================= STATE =================
+// errosPorDominio[dom] = [{ url, missingGroups, missingTargetsByGroup }]
 let errosPorDominio = {};
+if (!fs.existsSync(EVIDENCE_DIR)) fs.mkdirSync(EVIDENCE_DIR, { recursive: true });
 
 // ================= UTILS =================
 function chunkArray(arr, size) {
   const out = [];
   for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
   return out;
+}
+
+function slugifyUrl(u) {
+  try {
+    const url = new URL(u);
+    const base = (url.hostname + url.pathname).replace(/\/+/g, '_');
+    return base.replace(/[^a-zA-Z0-9_\-]/g, '_').slice(0, 180);
+  } catch {
+    return String(u).replace(/[^a-zA-Z0-9_\-]/g, '_').slice(0, 180);
+  }
+}
+
+function nowStamp() {
+  const d = new Date();
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}_${pad(d.getHours())}-${pad(
+    d.getMinutes()
+  )}-${pad(d.getSeconds())}`;
 }
 
 async function runWithConcurrency(items, limit, worker) {
@@ -88,7 +110,7 @@ async function ativarModoTurbo(page) {
   });
 }
 
-// ================= LOG CAPTURE (mantém só em memória pra debug do console) =================
+// ================= LOG CAPTURE =================
 function attachDebugCollectors(page) {
   const state = {
     console: [],
@@ -123,6 +145,32 @@ function attachDebugCollectors(page) {
   });
 
   return state;
+}
+
+// ================= EVIDÊNCIAS (screenshot + html + debug json) =================
+async function capturarEvidencia(page, urlLimpa, debugState, extra = {}) {
+  const slug = slugifyUrl(urlLimpa);
+  const stamp = nowStamp();
+  const base = path.join(EVIDENCE_DIR, `${stamp}__${slug}`);
+
+  try {
+    await page.screenshot({ path: `${base}.png`, fullPage: true }).catch(() => {});
+  } catch {}
+
+  try {
+    const html = await page.content().catch(() => '');
+    if (html) fs.writeFileSync(`${base}.html`, html, 'utf-8');
+  } catch {}
+
+  try {
+    const payload = {
+      url: urlLimpa,
+      ts: new Date().toISOString(),
+      debugState,
+      extra
+    };
+    fs.writeFileSync(`${base}.json`, JSON.stringify(payload, null, 2), 'utf-8');
+  } catch {}
 }
 
 // ================= FAXINA (MENOS AGRESSIVA) =================
@@ -301,10 +349,11 @@ async function esperarGptReady(page, timeout = GPT_READY_TIMEOUT_MS) {
   }
 }
 
-// ================= BUSCA (precisa ter TODOS os grupos) =================
-async function buscarTodosOsTargets(page, targetGroups, timeout = FIND_TIMEOUT_MS) {
+// ================= BUSCA POR GRUPOS (REGRA: OU em TODOS) =================
+async function buscarTargetGroupsNaPagina(page, targetGroups, timeout = FIND_TIMEOUT_MS) {
   return await page.evaluate(async (targetGroups, timeout) => {
     const start = Date.now();
+    const groups = targetGroups;
 
     const isVisibleEnough = (el) => {
       if (!el) return false;
@@ -336,69 +385,113 @@ async function buscarTodosOsTargets(page, targetGroups, timeout = FIND_TIMEOUT_M
       return false;
     };
 
-    const getSlotsSafe = () => {
+    // checa 1 target string (via GPT slots ou DOM)
+    const checkOneTarget = (t) => {
+      const tLower = String(t).toLowerCase();
+
+      // GPT slots
       try {
         if (window.googletag && googletag.pubads) {
-          return googletag.pubads().getSlots().map((s) => ({
-            id: s.getSlotElementId(),
-            path: s.getAdUnitPath()
-          }));
+          const slots = googletag.pubads().getSlots();
+          const hit = slots.find((s) => {
+            const id = (s.getSlotElementId() || '').toLowerCase();
+            const path = (s.getAdUnitPath() || '').toLowerCase();
+            return id.includes(tLower) || path.includes(tLower);
+          });
+          if (hit) {
+            return { found: true, tipo: 'GPT', detalhe: hit.getSlotElementId() || '(sem id)' };
+          }
         }
       } catch {}
-      return [];
+
+      // DOM
+      const el = document.querySelector(`[id*="${t}"], [id*="${tLower}"]`);
+      if (el) {
+        if (el.getAttribute && el.getAttribute('data-google-query-id')) {
+          return { found: true, tipo: 'DOM-CHECK', detalhe: `data-google-query-id (${t})` };
+        }
+
+        if (el.tagName === 'IFRAME' && isVisibleEnough(el)) {
+          return { found: true, tipo: 'DOM-CHECK', detalhe: `IFRAME visível (${t})` };
+        }
+
+        if (hasAdInsideTargetEl(el)) {
+          return { found: true, tipo: 'DOM-CHECK', detalhe: `Ad dentro do container (${t})` };
+        }
+      }
+
+      return { found: false };
     };
 
-    const matchAnyInGroup = (slots, groupTargets) => {
-      const lowerTargets = groupTargets.map((t) => String(t).toLowerCase());
+    const computeStatus = () => {
+      const perGroup = {};
+      const missingGroups = [];
+      const missingTargetsByGroup = {};
 
-      // 1) GPT slots
-      const slotHit = slots.find((s) => {
-        const id = (s.id || '').toLowerCase();
-        const path = (s.path || '').toLowerCase();
-        return lowerTargets.some((t) => id.includes(t) || path.includes(t));
-      });
-      if (slotHit) {
-        return { ok: true, tipo: 'GPT', detalhe: `${slotHit.id}` };
+      for (const groupName of Object.keys(groups)) {
+        const targets = groups[groupName] || [];
+        const perTarget = {};
+
+        for (const t of targets) {
+          perTarget[t] = checkOneTarget(t);
+        }
+
+        // ✅ REGRA OU (ANY) para TODOS os grupos:
+        // grupo passa se encontrar PELO MENOS UM target dentro dele
+        const okGroup = targets.length ? targets.some((t) => perTarget[t]?.found) : false;
+
+        perGroup[groupName] = { sucesso: okGroup, targets: perTarget };
+
+        if (!okGroup) {
+          missingGroups.push(groupName);
+          missingTargetsByGroup[groupName] = targets.filter((t) => !perTarget[t]?.found);
+        }
       }
 
-      // 2) DOM check
-      const domHit = lowerTargets.find((t) => {
-        const el = document.querySelector(`[id*="${t}"]`);
-        if (!el) return false;
-
-        if (el.getAttribute('data-google-query-id')) return true;
-
-        return hasAdInsideTargetEl(el) || (el.tagName === 'IFRAME' && isVisibleEnough(el));
-      });
-
-      if (domHit) {
-        return { ok: true, tipo: 'DOM-CHECK', detalhe: `Elemento: ${domHit}` };
-      }
-
-      return { ok: false };
+      return { perGroup, missingGroups, missingTargetsByGroup };
     };
 
     return new Promise((resolve) => {
       const timer = setInterval(() => {
-        const slots = getSlotsSafe();
-        const gptStatus = window.googletag && window.googletag.apiReady ? 'Ativo' : 'Inativo';
+        const status = computeStatus();
 
-        const results = {};
-        for (const groupName of Object.keys(targetGroups)) {
-          results[groupName] = matchAnyInGroup(slots, targetGroups[groupName]);
-        }
-
-        const allOk = Object.values(results).every((r) => r.ok);
-
-        if (allOk) {
+        if (status.missingGroups.length === 0) {
           clearInterval(timer);
-          resolve({ sucesso: true, tipo: 'ALL', gptStatus, results, debugSlots: slots });
+          resolve({
+            sucesso: true,
+            tipo: 'GROUPS-OK',
+            perGroup: status.perGroup
+          });
           return;
         }
 
         if (Date.now() - start > timeout) {
           clearInterval(timer);
-          resolve({ sucesso: false, tipo: 'TIMEOUT', gptStatus, results, debugSlots: slots });
+
+          let debugSlots = [];
+          let gptStatus = window.googletag && window.googletag.apiReady ? 'Ativo' : 'Inativo';
+
+          try {
+            if (window.googletag && googletag.pubads) {
+              debugSlots = googletag
+                .pubads()
+                .getSlots()
+                .map((s) => ({
+                  id: s.getSlotElementId(),
+                  path: s.getAdUnitPath()
+                }));
+            }
+          } catch {}
+
+          resolve({
+            sucesso: false,
+            tipo: 'TIMEOUT',
+            gptStatus,
+            debugSlots,
+            perGroup: status.perGroup,
+            missingGroups: status.missingGroups,
+            missingTargetsByGroup: status.missingTargetsByGroup
+          });
         }
       }, 500);
     });
@@ -413,7 +506,7 @@ async function processarUrl(url, browser) {
 
   try {
     page = await browser.newPage();
-    attachDebugCollectors(page); // mantém listeners, mas não salva nada em disco
+    const debugState = attachDebugCollectors(page);
 
     await ativarModoTurbo(page);
 
@@ -430,10 +523,8 @@ async function processarUrl(url, browser) {
     // garante topo
     await page.evaluate(() => window.scrollTo(0, 0)).catch(() => {});
 
-    // jitter contínuo
+    // INICIA jitter
     mouseJitter = await iniciarMouseJitter(page, 22000, 650);
-
-    // move inicial
     await page.mouse.move(500, 220, { steps: 10 }).catch(() => {});
 
     // segura no topo
@@ -446,34 +537,29 @@ async function processarUrl(url, browser) {
     // espera GPT ready (sem travar)
     const gptReady = await esperarGptReady(page, GPT_READY_TIMEOUT_MS);
 
-    // tenta achar TODOS ainda no topo
-    let resultado = await buscarTodosOsTargets(page, TARGET_GROUPS, 25000);
+    // tentativa 1: topo
+    let resultado = await buscarTargetGroupsNaPagina(page, TARGET_GROUPS, 25000);
 
-    // se não achou tudo, scroll e procura de novo
+    // se faltou algum grupo, scroll e tenta de novo
     if (!resultado.sucesso) {
       await scrollHumano(page);
       await esperarLayoutEstavel(page, 8000, 1000);
+
       await scrollAteSelector(
         page,
-        '#mob_top, #desk_top, #rewarded, #interstitial, [id*="mob_top"], [id*="desk_top"], [id*="rewarded"], [id*="interstitial"]',
-        8
+        '#mob_top, #desk_top, [id*="mob_top"], [id*="desk_top"], [id*="rewarded"], [id*="interstitial"]',
+        10
       ).catch(() => {});
+
       await esperarLayoutEstavel(page, 8000, 1000);
 
-      resultado = await buscarTodosOsTargets(page, TARGET_GROUPS, FIND_TIMEOUT_MS);
+      resultado = await buscarTargetGroupsNaPagina(page, TARGET_GROUPS, FIND_TIMEOUT_MS);
     }
 
     console.log(`\n📊 ${limpa}`);
 
     if (resultado.sucesso) {
-      const okMsgs = Object.entries(resultado.results || {})
-        .filter(([, r]) => r.ok)
-        .map(([k, r]) => `${k}: ${r.tipo} -> ${r.detalhe}`)
-        .join(' | ');
-
-      console.log(` 🟢 STATUS: OK (mob/desk + rewarded + interstitial)`);
-      if (okMsgs) console.log(`    ✅ ${okMsgs}`);
-
+      console.log(` 🟢 STATUS: OK (todos os grupos passaram na regra OU)`);
       try {
         mouseJitter?.stop();
       } catch {}
@@ -483,15 +569,14 @@ async function processarUrl(url, browser) {
     console.log(' 🔴 STATUS: FALHA');
     console.log(`    GPT Status: ${resultado.gptStatus || (gptReady.ok ? 'Ativo' : 'Inativo')}`);
 
-    const faltando = Object.entries(resultado.results || {})
-      .filter(([, r]) => !r.ok)
-      .map(([k]) => k);
+    const faltando = resultado.missingGroups || ['(desconhecido)'];
+    console.log(`    ❌ Grupos faltando: ${faltando.join(', ')}`);
 
-    if (faltando.length) console.log(`    ❌ Faltando: ${faltando.join(', ')}`);
-
-    for (const [k, r] of Object.entries(resultado.results || {})) {
-      if (r.ok) console.log(`    ✅ ${k}: ${r.tipo} -> ${r.detalhe}`);
-      else console.log(`    ❌ ${k}: não encontrado`);
+    if (resultado.missingTargetsByGroup) {
+      for (const g of Object.keys(resultado.missingTargetsByGroup)) {
+        const missT = resultado.missingTargetsByGroup[g] || [];
+        if (missT.length) console.log(`       - ${g}: faltando targets -> ${missT.join(', ')}`);
+      }
     }
 
     if (resultado.debugSlots && resultado.debugSlots.length > 0) {
@@ -505,10 +590,22 @@ async function processarUrl(url, browser) {
       console.log('    ⚠️ Nenhum slot GPT listado (pode ser AdSense/AutoAds ou inicialização tardia).');
     }
 
-    registrarErro(limpa, faltando);
+    await capturarEvidencia(page, limpa, debugState, { resultado, gptReady });
+    registrarErro(limpa, resultado.missingGroups || [], resultado.missingTargetsByGroup || {});
   } catch (e) {
     console.log(`\n❌ ERRO ${limpa} - ${e.message}`);
-    registrarErro(limpa, ['exception']);
+    try {
+      if (page) {
+        const debugState = {
+          console: [],
+          pageErrors: [String(e.message || e)],
+          requestFailed: [],
+          responsesBad: []
+        };
+        await capturarEvidencia(page, limpa, debugState, { exception: true, error: String(e.message || e) });
+      }
+    } catch {}
+    registrarErro(limpa, ['exception'], {});
   } finally {
     try {
       mouseJitter?.stop();
@@ -519,7 +616,7 @@ async function processarUrl(url, browser) {
 
 // ================= MAIN =================
 (async () => {
-  console.log('\n🚀 MONITOR V13 (MAIN-ONLY, robusto) [DISCORD] (CHECK: top + rewarded + interstitial)\n');
+  console.log('\n🚀 MONITOR V13 (GROUPS com regra OU em todos) [DISCORD]\n');
 
   const browser = await puppeteer.launch({
     headless: 'new',
@@ -550,31 +647,38 @@ async function processarUrl(url, browser) {
 })();
 
 // ================= ERROS / DISCORD =================
-function registrarErro(url, faltando = []) {
+function registrarErro(url, missingGroups = [], missingTargetsByGroup = {}) {
   try {
     const dom = new URL(url).hostname;
     if (!errosPorDominio[dom]) errosPorDominio[dom] = [];
-    errosPorDominio[dom].push({ url, faltando });
+    errosPorDominio[dom].push({ url, missingGroups, missingTargetsByGroup });
   } catch {}
 }
 
 async function enviarDiscord() {
-  let corpo = '🚨 **FALHAS DE ANÚNCIO - MG BR EMP**\n\n';
+  let corpo = '🚨 FALHAS DE ANÚNCIO - JN CC BR\n\n';
 
-  // URLs ordenadas por domínio
-  const dominios = Object.keys(errosPorDominio).sort();
+  // ordena domínios e URLs (por domínio)
+  const dominios = Object.keys(errosPorDominio).sort((a, b) => a.localeCompare(b));
 
   for (const d of dominios) {
-    corpo += `**${d}**\n`;
-    errosPorDominio[d].forEach((item) => {
-      const faltando = item.faltando?.length ? ` _(faltando: ${item.faltando.join(', ')})_` : '';
-      corpo += `<${item.url}>${faltando}\n`;
-    });
-    corpo += '\n';
+    const itens = (errosPorDominio[d] || [])
+      .slice()
+      .sort((a, b) => String(a.url).localeCompare(String(b.url)));
+
+    for (const item of itens) {
+      // nomes dos grupos que faltaram (é isso que você quer mostrar)
+      const mgList = Array.isArray(item.missingGroups) ? item.missingGroups : [];
+      const mg = mgList.length ? mgList.join(', ') : 'desconhecido';
+
+      corpo += `${d}\n`;
+      corpo += `${item.url}\n`;
+      corpo += `faltando: ${mg}\n\n`;
+    }
   }
 
   if (!DISCORD_CONFIG.webhookUrl) {
-    console.log('⚠️ DISCORD_WEBHOOK_URL_MGBREMP não configurado. Logando falhas no console.');
+    console.log('⚠️ DISCORD_WEBHOOK_URL não configurado. Logando falhas no console.');
     console.log(corpo);
     return;
   }
@@ -586,7 +690,7 @@ async function enviarDiscord() {
   const partes = splitDiscordMessage(corpo, 1900);
 
   for (let i = 0; i < partes.length; i++) {
-    const content = partes[i] + (partes.length > 1 ? `\n\n(${i + 1}/${partes.length})` : '');
+    const content = partes[i] + (partes.length > 1 ? `\n(${i + 1}/${partes.length})` : '');
 
     await postToDiscord(baseUrl, {
       content,
