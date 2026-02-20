@@ -7,8 +7,8 @@ puppeteer.use(StealthPlugin());
 
 // ================= DISCORD =================
 const DISCORD_CONFIG = {
-  webhookUrl: process.env.DISCORD_WEBHOOK_URL,
-  threadId: process.env.DISCORD_THREAD_ID
+  webhookUrl: process.env.DISCORD_WEBHOOK_URL_MGBREMP,
+  threadId: process.env.DISCORD_THREAD_ID_MGBREMP
 };
 
 // ================= URLS =================
