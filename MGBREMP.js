@@ -23,7 +23,7 @@ const urls = [
 // interstitial = precisa achar interstitial
 const TARGET_GROUPS = {
   top: ['mob_top', 'desk_top'],
-  rewarded: ['rewarded'],
+  rewarded: ['rewarded','offerwall'],
   interstitial: ['interstitial']
 };
 
