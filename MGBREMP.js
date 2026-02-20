@@ -655,7 +655,7 @@ async function enviarDiscord() {
   }
 
   if (!DISCORD_CONFIG.webhookUrl) {
-    console.log('⚠️ DISCORD_WEBHOOK_URL não configurado. Logando falhas no console.');
+    console.log('⚠️ DISCORD_WEBHOOK_URL_MGBREMP não configurado. Logando falhas no console.');
     console.log(corpo);
     return;
   }
