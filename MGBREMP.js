@@ -18,7 +18,7 @@ const urls = [
 ];
 
 // ================= TARGETS =================
-const TARGETS_MAIN = ['mob_top', 'desk_top'];
+const TARGETS_MAIN = ['mob_top', 'desk_top','rewarded'];
 
 // ================= CONFIGS =================
 const CONCURRENCY = 5;
