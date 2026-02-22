@@ -569,7 +569,7 @@ async function processarUrl(url, browser) {
     console.log(`    GPT Status: ${resultado.gptStatus || (gptReady.ok ? 'Ativo' : 'Inativo')}`);
 
     const faltando = resultado.missingGroups || ['(desconhecido)'];
-    console.log(`    ❌ Grupos faltando: ${faltando.join(', ')}`);
+    console.log(`    ❌ Grupos Bloco faltando: ${faltando.join(', ')}`);
 
     if (resultado.missingTargetsByGroup) {
       for (const g of Object.keys(resultado.missingTargetsByGroup)) {
