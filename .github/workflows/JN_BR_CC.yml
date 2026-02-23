@@ -24,6 +24,6 @@ jobs:
 
       - name: Executar verificador
         env:
-          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL_JNBRCC }}
-          DISCORD_THREAD_ID: ${{ secrets.DISCORD_THREAD_ID_JNBRCC }}
+          DISCORD_WEBHOOK_URL_JNBRCC: ${{ secrets.DISCORD_WEBHOOK_URL_JNBRCC }}
+          DISCORD_THREAD_ID_JNBRCC: ${{ secrets.DISCORD_THREAD_ID_JNBRCC }}
         run: node JNBRCC.js
