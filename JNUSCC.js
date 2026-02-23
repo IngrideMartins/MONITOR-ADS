@@ -14,10 +14,10 @@ const DISCORD_CONFIG = {
 // ================= URLS =================
 const urls = [
 'https://en.creativepulse23.com/us-card-recommendation-2',
-'http://us.netdinheiro.com.br/indigo-p1',
-'http://www.caxiason.com.br/recommends-options-2',
-'http://en.rendademae.com/credit-cads-recommendations-2',
-'http://us.energiaradiante.com.br/us-credit-card-recommendation-1'];
+'https://us.netdinheiro.com.br/indigo-p1',
+'https://www.caxiason.com.br/recommends-options-2',
+'https://en.rendademae.com/credit-cads-recommendations-2',
+'https://us.energiaradiante.com.br/us-credit-card-recommendation-1'];
 
 // ================= TARGET GROUPS (REGRA: OU em TODOS os grupos) =================
 const TARGET_GROUPS = {
