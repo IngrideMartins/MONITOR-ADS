@@ -14,7 +14,6 @@ const DISCORD_CONFIG = {
 // ================= URLS =================
 const urls = [
 'https://karte.zienic.com/p1-recommends-options',
-'https://de.zienic.com/online-kreditkarten-suchquiz-rw',
 'https://karte.meucartaoideal.com/recommends-options-3',
 'https://de.creativepulse23.com/kartenempfehlung-1'];
 
