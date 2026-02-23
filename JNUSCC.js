@@ -21,7 +21,7 @@ const urls = [
 
 // ================= TARGET GROUPS (REGRA: OU em TODOS os grupos) =================
 const TARGET_GROUPS = {
-  top: ['mob_top', 'desk_top' 'enrdm_top'],
+  top: ['mob_top', 'desk_top', 'enrdm_top'],
   interstitial: ['interstitial']
 };
 
