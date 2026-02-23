@@ -84,7 +84,7 @@ async function runWithConcurrency(items, limit, worker) {
 
 // ================= TURBO (imagens só ads) =================
 async function ativarModoTurbo(page) {
-  await page.setRequestInterception(true);
+  await page.setRequestInterception(false);
 
   const allowImgHosts = [
     'googlesyndication.com',
