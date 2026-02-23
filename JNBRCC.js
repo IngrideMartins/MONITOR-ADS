@@ -15,8 +15,7 @@ const DISCORD_CONFIG = {
 const urls = [
 'https://br.netdinheiro.com.br/recomendacao-de-cartao-t-p1',
 'http://br.creativepulse23.com/recomendacao-cartao',
-'https://www.genialcredito.com/recomendacao-cartao',
-'https://meucreditoagora.com/pt-br-recomendacao-de-cartoes-de-credito-4'];
+'https://www.genialcredito.com/recomendacao-cartao',];
 
 // ================= TARGET GROUPS (REGRA: OU em TODOS os grupos) =================
 const TARGET_GROUPS = {
