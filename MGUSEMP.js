@@ -15,7 +15,7 @@ const DISCORD_CONFIG = {
 const urls = [
 'https://finance.cursosedu.com/usa-loan-recommendation-3',
 'https://finance.totalfinancas.com/loan-recomendation-2',
-'https://finance.widescope4.com/usa-loan-recommendation-3'];
+'https://finance.widescope4.com/usa-loan-recommendation-6'];
 
 // ================= TARGET GROUPS (REGRA: OU em TODOS os grupos) =================
 const TARGET_GROUPS = {
