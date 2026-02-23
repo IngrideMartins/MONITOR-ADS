@@ -1,0 +1,29 @@
+name: JN UK CC
+on:
+  schedule:
+    - cron: '*/5 * * * *' # 09:00 e 21:00 Brasil (UTC-3)
+  workflow_dispatch:
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      - name: Instalar dependencias
+        run: npm install
+
+      - name: Instalar Navegador Chrome
+        run: npx puppeteer browsers install chrome
+
+      - name: Executar verificador
+        env:
+          DISCORD_WEBHOOK_URL_JNUKCC: ${{ secrets.DISCORD_WEBHOOK_URL_JNUKCC }}
+          DISCORD_THREAD_ID_JNUKCC: ${{ secrets.DISCORD_THREAD_ID_JNUKCC }}
+        run: node JNUKCC.js
