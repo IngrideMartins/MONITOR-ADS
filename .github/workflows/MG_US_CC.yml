@@ -26,4 +26,4 @@ jobs:
         env:
           DISCORD_WEBHOOK_URL_MGUSCC: ${{ secrets.DISCORD_WEBHOOK_URL_MGUSCC }}
           DISCORD_THREAD_ID_MGUSCC: ${{ secrets.DISCORD_THREAD_ID_MGUSCC }}
-        run: node MGBRCC.js
+        run: node MGUSCC.js
