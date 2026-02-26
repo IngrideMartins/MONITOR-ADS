@@ -13,8 +13,7 @@ const DISCORD_CONFIG = {
 
 // ================= URLS =================
 const urls = [
-'https://au.zienic.com/discover-the-credit-card',
-'https://au.genialcredito.com/recommendation-card-2-r'];
+'https://au.zienic.com/discover-the-credit-card'];
 
 // ================= TARGET GROUPS (REGRA: OU em TODOS os grupos) =================
 const TARGET_GROUPS = {
