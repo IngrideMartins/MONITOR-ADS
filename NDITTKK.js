@@ -13,8 +13,7 @@ const DISCORD_CONFIG = {
 
 // ================= URLS =================
 const urls = [
-'http://it.genialcredito.com/raccomandazioni-sulle-carte-di-credito-1',
-'http://it.meucartaoideal.com/card-it-recommendation-5'];
+'http://it.genialcredito.com/raccomandazioni-sulle-carte-di-credito-1'];
 
 // ================= TARGET GROUPS (REGRA: OU em TODOS os grupos) =================
 const TARGET_GROUPS = {
