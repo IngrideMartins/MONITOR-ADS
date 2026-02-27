@@ -7,8 +7,8 @@ puppeteer.use(StealthPlugin());
 
 // ================= DISCORD =================
 const DISCORD_CONFIG = {
-  webhookUrl: process.env.DISCORD_WEBHOOK_URL_JNBRCC,
-  threadId: process.env.DISCORD_THREAD_ID_JNBRCC
+  webhookUrl: process.env.DISCORD_WEBHOOK_URL_JNAUCC,
+  threadId: process.env.DISCORD_THREAD_ID_JNAUCC
 };
 
 // ================= URLS =================
@@ -547,7 +547,7 @@ async function processarUrl(url, browser) {
 
       await scrollAteSelector(
         page,
-        '#mob_top, #desk_top, [id*="mob_top"], [id*="desk_top"], [id*="rewarded"], [id*="interstitial"]',
+       '#mob_top, #desk_top, [id*="mob_top"], [id*="desk_top"], [id*="rewarded"], [id*="interstitial"]',
         10
       ).catch(() => {});
 
@@ -570,7 +570,7 @@ async function processarUrl(url, browser) {
     console.log(`    GPT Status: ${resultado.gptStatus || (gptReady.ok ? 'Ativo' : 'Inativo')}`);
 
     const faltando = resultado.missingGroups || ['(desconhecido)'];
-    console.log(`    ❌ Grupos faltando: ${faltando.join(', ')}`);
+    console.log(`❌Bloco Faltando: ${faltando.join(', ')}`);
 
     if (resultado.missingTargetsByGroup) {
       for (const g of Object.keys(resultado.missingTargetsByGroup)) {
@@ -656,9 +656,9 @@ function registrarErro(url, missingGroups = [], missingTargetsByGroup = {}) {
 }
 
 async function enviarDiscord() {
-  let corpo = '🚨 FALHAS DE ANÚNCIO - JN BR CC\n\n';
+  let corpo = '🚨 FALHAS DE ANÚNCIO - JN AU CC\n\n';
+  let teveItem = false; // 👈 controla se existe algo real para enviar
 
-  // ordena domínios e URLs (por domínio)
   const dominios = Object.keys(errosPorDominio).sort((a, b) => a.localeCompare(b));
 
   for (const d of dominios) {
@@ -667,14 +667,27 @@ async function enviarDiscord() {
       .sort((a, b) => String(a.url).localeCompare(String(b.url)));
 
     for (const item of itens) {
-      // nomes dos grupos que faltaram (é isso que você quer mostrar)
-      const mgList = Array.isArray(item.missingGroups) ? item.missingGroups : [];
-      const mg = mgList.length ? mgList.join(', ') : 'desconhecido';
+      // 🔥 FILTRA exception
+      const mgListRaw = Array.isArray(item.missingGroups) ? item.missingGroups : [];
+      const mgList = mgListRaw.filter((g) => g !== 'exception');
+
+      // se só tinha exception, ignora
+      if (mgList.length === 0) continue;
+
+      teveItem = true; // 👈 marca que existe falha real
+
+      const mg = mgList.join(', ');
 
       corpo += `${d}\n`;
       corpo += `${item.url}\n`;
       corpo += `faltando: ${mg}\n\n`;
     }
+  }
+
+  // 👇 Se não houve falha real (só exception), não envia nada
+  if (!teveItem) {
+    console.log('ℹ️ Apenas exceptions detectadas (filtradas). Nada enviado ao Discord.');
+    return;
   }
 
   if (!DISCORD_CONFIG.webhookUrl) {
