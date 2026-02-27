@@ -26,4 +26,4 @@ jobs:
         env:
           DISCORD_WEBHOOK_URL_NDITTKKARB: ${{ secrets.DISCORD_WEBHOOK_URL_NDITTKKARB }}
           DISCORD_THREAD_ID_NDITTKKARB: ${{ secrets.DISCORD_THREAD_ID_NDITTKKARB }}
-        run: node NDITTKKARB.js
+        run: node NDITARB.js
