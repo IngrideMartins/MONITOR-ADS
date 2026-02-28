@@ -13,11 +13,11 @@ const DISCORD_CONFIG = {
 
 // ================= URLS =================
 const urls = [
-'https://en.creativepulse23.com/us-card-recommendation-2',
+'https://en.creativepulse23.com/us-card-recommendation-1',
+'https://zienic.com/us-credit-card-recommendation-8',
 'https://us.netdinheiro.com.br/indigo-p1',
-'https://www.caxiason.com.br/recommends-options-2',
 'https://en.rendademae.com/credit-cads-recommendations-2',
-'https://us.energiaradiante.com.br/us-credit-card-recommendation-1'];
+'https://thecredito.com.br/us-credit-card-recommendation-7'];
 
 // ================= TARGET GROUPS (REGRA: OU em TODOS os grupos) =================
 const TARGET_GROUPS = {
