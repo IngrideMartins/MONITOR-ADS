@@ -21,7 +21,7 @@ const urls = [
 
 // ================= TARGET GROUPS (REGRA: OU em TODOS os grupos) =================
 const TARGET_GROUPS = {
-  top: ['mob_top', 'desk_top'],
+  top: ['mob_top', 'desk_top', 'enrdm_top'],
   interstitial: ['interstitial']
 };
 
@@ -548,7 +548,7 @@ async function processarUrl(url, browser) {
 
       await scrollAteSelector(
         page,
-        '#mob_top, #desk_top, [id*="mob_top"], [id*="desk_top"], [id*="interstitial"]',
+        '#mob_top, #desk_top, #enrdm_top [id*="mob_top"], [id*="desk_top"], [id*="enrdm_top"], [id*="interstitial"]',
         10
       ).catch(() => {});
 
