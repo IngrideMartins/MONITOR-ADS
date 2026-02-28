@@ -24,6 +24,6 @@ jobs:
 
       - name: Executar verificador
         env:
-          DISCORD_WEBHOOK_URL_NDITTKKARB: ${{ secrets.DISCORD_WEBHOOK_URL_NDITTKKARB }}
-          DISCORD_THREAD_ID_NDITTKKARB: ${{ secrets.DISCORD_THREAD_ID_NDITTKKARB }}
+          DISCORD_WEBHOOK_URL_NDITARB: ${{ secrets.DISCORD_WEBHOOK_URL_NDITARB }}
+          DISCORD_THREAD_ID_NDITARB: ${{ secrets.DISCORD_THREAD_ID_NDITARB }}
         run: node NDITARB.js
