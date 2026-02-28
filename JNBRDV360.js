@@ -13,8 +13,7 @@ const DISCORD_CONFIG = {
 
 // ================= URLS =================
 const urls = [
-'https://en.creativepulse23.com/us-card-recommendation-1',
-'https://en.rendademae.com/credit-cards'];
+'https//www.genialcredito.com/recomendacao-cartao'];
 
 // ================= TARGET GROUPS (REGRA: OU em TODOS os grupos) =================
 const TARGET_GROUPS = {
