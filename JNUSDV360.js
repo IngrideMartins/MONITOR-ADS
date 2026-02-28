@@ -13,7 +13,7 @@ const DISCORD_CONFIG = {
 
 // ================= URLS =================
 const urls = [
-'https://en.creativepulse23.com/us-card-recommendation-2',
+'https://en.creativepulse23.com/us-card-recommendation-1',
 'https://en.rendademae.com/credit-cards'];
 
 // ================= TARGET GROUPS (REGRA: OU em TODOS os grupos) =================
