@@ -13,7 +13,8 @@ const DISCORD_CONFIG = {
 
 // ================= URLS =================
 const urls = [
-''];
+'https://www.altarendabr.com/cartoes-brasileiros-recomendacoes-1',
+'https://limiteliberado.com/br-recomendacao-de-cartao-5'];
 
 // ================= TARGET GROUPS (REGRA: OU em TODOS os grupos) =================
 const TARGET_GROUPS = {
