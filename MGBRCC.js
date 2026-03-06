@@ -13,7 +13,7 @@ const DISCORD_CONFIG = {
 
 // ================= URLS =================
 const urls = [
-'https://br.widescope4.com/pt-br-recomendacao-de-cartoes-de-credito-1'];
+''];
 
 // ================= TARGET GROUPS (REGRA: OU em TODOS os grupos) =================
 const TARGET_GROUPS = {
