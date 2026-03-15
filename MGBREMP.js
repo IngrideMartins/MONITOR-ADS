@@ -17,7 +17,7 @@ const urls = [
 
 // ================= TARGET GROUPS (REGRA: OU em TODOS os grupos) =================
 const TARGET_GROUPS = {
-  top: ['mob_top', 'desktop'],
+  top: ['mob_top', 'desk_top'],
   rewarded: ['rewarded','offerwall'],
   interstitial: ['interstitial']
 };
