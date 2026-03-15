@@ -545,7 +545,7 @@ async function processarUrl(url, browser) {
 
       await scrollAteSelector(
         page,
-        '#earb_top, #desk_top, [id*="earb_top"], [id*="desk_top"], [id*="rewarded"], [id*="interstitial"]',
+        '#mob_top, #desk_top, [id*="mob_top"], [id*="desk_top"], [id*="rewarded"], [id*="interstitial"]',
         10
       ).catch(() => {});
 
