@@ -13,11 +13,11 @@ const DISCORD_CONFIG = {
 
 // ================= URLS =================
 const urls = [
-'https://emprestimo.altarendabr.com/pt-br-recomendacao-de-emprestimos-4'];
+'https://emprestimo.widescope4.com/br-recomendacao-de-emprestimo-3'];
 
 // ================= TARGET GROUPS (REGRA: OU em TODOS os grupos) =================
 const TARGET_GROUPS = {
-  top: ['earb_top', 'earb_desktop'],
+  top: ['mob_top', 'desktop'],
   rewarded: ['rewarded','offerwall'],
   interstitial: ['interstitial']
 };
