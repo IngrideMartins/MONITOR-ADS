@@ -13,7 +13,7 @@ const DISCORD_CONFIG = {
 
 // ================= URLS =================
 const urls = [
-'https://emprestimo.widescope4.com/br-recomendacao-de-emprestimo-3'];
+'https://emprestimo.widescope4.com/br-recomendacao-de-emprestimos-7'];
 
 // ================= TARGET GROUPS (REGRA: OU em TODOS os grupos) =================
 const TARGET_GROUPS = {
