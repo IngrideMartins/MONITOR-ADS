@@ -17,9 +17,9 @@ const urls = [
 
 // ================= TARGET GROUPS (REGRA: OU em TODOS os grupos) =================
 const TARGET_GROUPS = {
-  top: ['mob_top', 'desk_top'],
-  rewarded: ['rewarded','offerwall'],
-  interstitial: ['interstitial']
+  top: ['mob_top', 'desk_top', 'sp_emprestimowidescope4_desk_top', 'sp_emprestimowidescope4_mob_top'],
+  rewarded: ['rewarded','offerwall', 'sp_emprestimowidescope4_desk_offerwall', 'sp_emprestimowidescope4_mob_offerwall'],
+  interstitial: ['interstitial', 'sp_emprestimowidescope4_desk_interstitial', 'sp_emprestimowidescope4_mob_interstitial']
 };
 
 // ================= CONFIGS =================
