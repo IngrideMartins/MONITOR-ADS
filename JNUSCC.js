@@ -14,7 +14,6 @@ const DISCORD_CONFIG = {
 // ================= URLS =================
 const urls = [
 'https://en.creativepulse23.com/us-card-recommendation-1',
-'https://us.netdinheiro.com.br/indigo-p1',
 'https://en.rendademae.com/credit-cads-recommendations-2',
 'https://thecredito.com.br/us-credit-card-recommendation-7'];
 
