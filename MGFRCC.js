@@ -13,8 +13,7 @@ const DISCORD_CONFIG = {
 
 // ================= URLS =================
 const urls = [
-'https://fr.widescope4.com/fr-recommandation-de-carte-4',
-'https://fr.fincopilot.net/fr-recommandation-de-carte-3'];
+
 
 // ================= TARGET GROUPS (REGRA: OU em TODOS os grupos) =================
 const TARGET_GROUPS = {
